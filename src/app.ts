@@ -1,16 +1,16 @@
 import express from 'express';
-import query from './config/db';
-import userRoutes from './routes/user';
+import userRouter from './routes/userRouter';
+import { checkDBConnection } from './config/db';
 
 const app = express();
 
-// Middleware
-app.use(express.json());
+app.use('/users', userRouter);
 
-// Маршруты
-app.use('/users', userRoutes);
+const startServer = async (): Promise<void> => {
+  await checkDBConnection();
+  app.listen(3000, () => {
+    console.log('Server is running on http://localhost:3000');
+  });
+};
 
-// Запуск сервера
-app.listen(3000, () => {
-  console.log('Server is running on http://localhost:3000');
-});
+startServer();
