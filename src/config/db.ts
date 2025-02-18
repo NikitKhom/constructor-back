@@ -1,14 +1,6 @@
 import { Pool } from 'pg';
 import 'dotenv/config';
 
-// interface EnvConstants {
-//     USER: string,
-//     DB_URL: string,
-//     DB_NAME: string,
-//     PASS: string,
-//     PORT: string,
-// }
-
 const {
     USER = 'nikitkhom',
     DB_URL = '::1',
@@ -25,6 +17,16 @@ const pool = new Pool({
     port: parseInt(PORT)
 });
 
-const query = (text: string, params?: any[]) => pool.query(text, params);
+const checkDBConnection = async (): Promise<void> => {
+    try {
+        const client = await pool.connect();
+        console.log('DB connected');
+        client.release();
+    } catch (error) {
+        console.error('DB is not connected');
+        process.exit(1);
+    }
+}
 
-export default query;
+
+export { pool, checkDBConnection };
