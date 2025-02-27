@@ -7,7 +7,7 @@ const saltRound = 10;
 
 const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
     const userExist = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (userExist.rows.length > 0) {
       res.status(400).json({message: "Пользователь с таким email уже существует!"});
@@ -16,8 +16,8 @@ const register = async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await bcrypt.hash(password, saltRound);
         
     const newUser = await pool.query(
-      "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email",
-      [username, email, hashedPassword]
+      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, username, email",
+      [name, email, hashedPassword]
     );
 
     const token = jwt.sign({ id: newUser.rows[0].id }, process.env.JWT_SECRET || "dev_key", { expiresIn: "1h" });

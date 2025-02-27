@@ -1,5 +1,4 @@
 import { Pool } from "pg";
-import "dotenv/config";
 
 const {
   USER = "nikitkhom",
