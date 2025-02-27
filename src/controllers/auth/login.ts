@@ -3,9 +3,14 @@ import { pool } from "../../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ error: "Email and password are required" });
+      return;
+    }
 
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     if (user.rows.length === 0) {
@@ -19,11 +24,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Генерация JWT токена
-    const token = jwt.sign({ userId: user.rows[0].id }, process.env.JWT_SECRET!, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user.rows[0].id }, process.env.JWT_SECRET || "dev_key", { expiresIn: "1h" });
 
-    res.status(200).json({ message: "Авторизация прошла успешно", token });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+  
+    res.status(200).send();
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
 };
+
+export default login;
