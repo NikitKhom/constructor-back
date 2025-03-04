@@ -40,20 +40,16 @@ const updateUser = async (req: Request, res: Response) => {
       email = COALESCE($2, email),
       avatar = COALESCE($3, avatar)
   WHERE id = $4
-  RETURNING *;
+  RETURNING name, email, avatar;
   `;
   const values = [name, email, avatar, userId];
-
   const { rows } = await pool.query(query, values);
-
   if (rows.length === 0) {
     res.status(404).json({ message: "Пользователь не найден" });
     return;
   }
 
   res.status(200).json(rows[0]);
-
-  res.json({ message: "Данные пользователя обновлены" });
 };
 
 const deleteUser = async (req: Request, res: Response): Promise<void> => {

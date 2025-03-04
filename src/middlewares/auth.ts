@@ -1,21 +1,27 @@
-// import { Request, Response } from "express";
-// import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
-// const authMiddleware = (req: Request, res: Response, next) => {
-//   const token = req.cookies.token; // Берём токен из куки
-  
-//   if (!token) {
-//     return res.status(401).json({ message: "Не авторизован" });
-//   }
-  
-//   try {
-//     const decoded = jwt.verify(token, SECRET_KEY);
-//     req.user = decoded;
-//     next();
-//   } catch (error) {
-//     res.status(401).json({ message: "Неверный или истёкший токен" });
-//   }
-// };
+interface AuthRequest extends Request {
+    user?: JwtPayload | string;
+  }
 
-// export default authMiddleware;
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies?.token;
+  
+  if (!token) {
+    res.status(401).json({ message: "Не авторизован" });
+    return;
+  }
+  
+  try {
+    const decoded = jwt.verify(token,  process.env.JWT_SECRET || "dev_key");
+    (req as AuthRequest).user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Неверный или истёкший токен" });
+  }
+};
+
+export default authMiddleware;
   

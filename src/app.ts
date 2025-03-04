@@ -3,6 +3,7 @@ import userRouter from "./routes/userRouter";
 import { checkDBConnection } from "./config/db";
 import authRouter from "./routes/auth";
 import cookieParser from "cookie-parser";
+import authMiddleware from "./middlewares/auth";
 
 const app = express();
 
@@ -10,7 +11,8 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
-app.use("/users", userRouter);
+app.use(authMiddleware);
+app.use("/user", userRouter);
 
 
 const startServer = async (): Promise<void> => {

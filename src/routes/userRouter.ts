@@ -3,7 +3,7 @@ import { getUser, updateUser, deleteUser } from "../controllers/userController";
 
 const userRouter = express.Router();
 userRouter.get("/:id", getUser);
-userRouter.put("/:id", updateUser);
+userRouter.patch("/:id", updateUser);
 userRouter.delete("/:id", deleteUser);
 
 
