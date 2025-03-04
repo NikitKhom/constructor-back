@@ -1,9 +1,10 @@
 import express from "express";
-import { getUser, updateUser, deleteUser } from "../controllers/userController";
+import { getUsers, getUser, updateUser, deleteUser } from "../controllers/userController";
 
 const userRouter = express.Router();
-userRouter.get("/:id", getUser);
-userRouter.patch("/:id", updateUser);
+userRouter.get("/", getUsers);
+userRouter.get("/me", getUser);
+userRouter.patch("/me", updateUser);
 userRouter.delete("/:id", deleteUser);
 
 

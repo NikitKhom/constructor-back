@@ -2,9 +2,28 @@ import { pool } from "../config/db";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 
+interface User {
+  id: number;
+}
+
+interface AuthRequest extends Request {
+    user: User;
+}
+
+const getUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { rows } = await pool.query("SELECT id, name, email, avatar FROM users");
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+};
+
+
 const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.params.id;
+    const userId = (req as AuthRequest).user.id;
+    console.log((req as AuthRequest).user);
     const {rows} = await pool.query("SELECT id, name, email, avatar FROM users WHERE id = $1", [userId]);
     
     if (rows.length === 0) {
@@ -27,29 +46,32 @@ const updatePassword = async (userId: string, newPassword: string): Promise<void
 
 const updateUser = async (req: Request, res: Response) => {
   const { name, email, password, avatar } = req.body;
-  const userId = req.params.id;
+  const userId = (req as AuthRequest).user.id;
+  try {
+    if (password) {
+      await updatePassword(String(userId), password);
+    }
 
-  if (password) {
-    await updatePassword(userId, password);
+    const query = `
+    UPDATE users
+    SET 
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        avatar = COALESCE($3, avatar)
+    WHERE id = $4
+    RETURNING name, email, avatar;
+    `;
+    const values = [name, email, avatar, userId];
+    const { rows } = await pool.query(query, values);
+    if (rows.length === 0) {
+      res.status(404).json({ message: "Пользователь не найден" });
+      return;
+    }
+  
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
   }
-
-  const query = `
-  UPDATE users
-  SET 
-      name = COALESCE($1, name),
-      email = COALESCE($2, email),
-      avatar = COALESCE($3, avatar)
-  WHERE id = $4
-  RETURNING name, email, avatar;
-  `;
-  const values = [name, email, avatar, userId];
-  const { rows } = await pool.query(query, values);
-  if (rows.length === 0) {
-    res.status(404).json({ message: "Пользователь не найден" });
-    return;
-  }
-
-  res.status(200).json(rows[0]);
 };
 
 const deleteUser = async (req: Request, res: Response): Promise<void> => {
@@ -70,6 +92,7 @@ const deleteUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 export {
+  getUsers,
   getUser,
   updateUser,
   deleteUser

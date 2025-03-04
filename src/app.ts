@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
 app.use(authMiddleware);
-app.use("/user", userRouter);
+app.use("/users", userRouter);
 
 
 const startServer = async (): Promise<void> => {
