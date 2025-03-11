@@ -1,12 +1,9 @@
 import { pool } from "../config/db";
-import { Request, Response } from "express";
+import { Response } from "express";
 import bcrypt from "bcrypt";
+import { AuthRequest } from "../utils/types";
 
-interface AuthRequest extends Request {
-  user: { id: number };
-}
-
-const getUsers = async (req: Request, res: Response): Promise<void> => {
+const getUsers = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { rows } = await pool.query("SELECT id, name, email, avatar FROM users");
     res.status(200).json(rows);
@@ -16,10 +13,13 @@ const getUsers = async (req: Request, res: Response): Promise<void> => {
 };
 
 
-const getUser = async (req: Request, res: Response): Promise<void> => {
+const getUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = (req as AuthRequest).user.id;
-    console.log((req as AuthRequest).user);
+    if (!req.user) {
+      res.status(401).json({ message: "Не авторизован" });
+      return;
+    }
+    const userId = req.user.id;
     const {rows} = await pool.query("SELECT id, name, email, avatar FROM users WHERE id = $1", [userId]);
     
     if (rows.length === 0) {
@@ -40,9 +40,13 @@ const updatePassword = async (userId: string, newPassword: string): Promise<void
 };
 
 
-const updateUser = async (req: Request, res: Response) => {
+const updateUser = async (req: AuthRequest, res: Response) => {
   const { name, email, password, avatar } = req.body;
-  const userId = (req as AuthRequest).user.id;
+  if (!req.user) {
+    res.status(401).json({ message: "Не авторизован" });
+    return;
+  }
+  const userId = req.user.id;
   try {
     if (password) {
       await updatePassword(String(userId), password);
@@ -70,7 +74,7 @@ const updateUser = async (req: Request, res: Response) => {
   }
 };
 
-const deleteUser = async (req: Request, res: Response): Promise<void> => {
+const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
 
