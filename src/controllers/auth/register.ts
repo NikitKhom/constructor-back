@@ -1,19 +1,22 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { pool } from "../../config/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { BAD_REQUEST, CONFLICT, CREATED, SALT_ROUNDS } from "../../utils/constants";
+import { ApiError } from "../../middlewares/errorHandler";
 
-const saltRound = 10;
-
-const register = async (req: Request, res: Response): Promise<void> => {
+const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, email, password } = req.body;
+
+    if (!email || !password || !name) {
+      throw new ApiError("Email, пароль или имя не указаны", BAD_REQUEST);
+    }
     const userExist = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (userExist.rows.length > 0) {
-      res.status(400).json({message: "Пользователь с таким email уже существует!"});
-      return;
+      throw new ApiError("Пользователь с таким email уже существует", CONFLICT);
     }
-    const hashedPassword = await bcrypt.hash(password, saltRound);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         
     const newUser = await pool.query(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email",
@@ -28,9 +31,9 @@ const register = async (req: Request, res: Response): Promise<void> => {
     });
 
 
-    res.status(201).json(newUser.rows[0]);
+    res.status(CREATED).json(newUser.rows[0]);
   } catch (error) {
-    res.status(500).json({error: (error as Error).message});
+    next(error);
   }
 };
 

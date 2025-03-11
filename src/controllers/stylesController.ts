@@ -1,28 +1,33 @@
-import { Response } from "express";
+import { NextFunction, Response } from "express";
 import { pool } from "../config/db";
-import { AuthRequest } from "../utils/types"; 
+import { AuthRequest } from "../utils/types";
+import {
+  BAD_REQUEST,
+  UNAUTHORIZED,
+  NOT_FOUND_ERROR,
+  CREATED,
+} from "../utils/constants";
+import { ApiError } from "../middlewares/errorHandler";
 
 
 
-export const getStyles = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getStyles = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
     const userId = req.user.id;
     const { rows } = await pool.query("SELECT * FROM styles WHERE user_id = $1", [userId]);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const createStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createStyle = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
     const userId = req.user.id;
     const { name, formCss, inputCss, buttonCss } = req.body;
@@ -31,32 +36,29 @@ export const createStyle = async (req: AuthRequest, res: Response): Promise<void
       [userId, name, formCss, inputCss, buttonCss]
     );
 
-    res.status(201).json(rows[0]);
+    res.status(CREATED).json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const updateStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateStyle = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
     const userId = req.user.id;
     const styleId = req.params.id;
     const { name, formCss, inputCss, buttonCss } = req.body;
 
     if (!styleId) {
-      res.status(400).json({ message: "ID не передан в URL" });
-      return;
+      throw new ApiError("ID не передан в URL", BAD_REQUEST);
     }
 
     const styleIdNum = Number(styleId);
 
     if (isNaN(styleIdNum)) {
-      res.status(400).json({ message: "Некорректный ID стиля" });
-      return;
+      throw new ApiError("Некорректный ID стиля", BAD_REQUEST);
     }
 
     const { rowCount, rows } = await pool.query(
@@ -65,35 +67,31 @@ export const updateStyle = async (req: AuthRequest, res: Response): Promise<void
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Стиль не найден" });
-      return;
+      throw new ApiError("Стиль не найден", NOT_FOUND_ERROR);
     }
 
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const deleteStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteStyle = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
     const userId = req.user.id;
     const styleId = req.params.id;
 
     if (!styleId) {
-      res.status(400).json({ message: "ID не передан в URL" });
-      return; 
+      throw new ApiError("ID не передан в URL", BAD_REQUEST);
     }
 
     const styleIdNum = Number(styleId);
 
     if (isNaN(styleIdNum)) {
-      res.status(400).json({ message: "Некорректный ID стиля" });
-      return;
+      throw new ApiError("Некорректный ID стиля", BAD_REQUEST);
     }
 
     const { rowCount } = await pool.query(
@@ -102,12 +100,11 @@ export const deleteStyle = async (req: AuthRequest, res: Response): Promise<void
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Стиль не найден" });
-      return;
+      throw new ApiError("Стиль не найден", NOT_FOUND_ERROR);
     }
 
     res.json({ message: "Стиль удалён" });
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };

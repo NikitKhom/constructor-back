@@ -1,60 +1,59 @@
-import { Response } from "express";
+import { NextFunction, Response } from "express";
 import { pool } from "../config/db";
 import { AuthRequest } from "../utils/types";
+import { BAD_REQUEST, UNAUTHORIZED, CREATED, NOT_FOUND_ERROR, FORBIDDEN } from "../utils/constants";
+import { ApiError } from "../middlewares/errorHandler";
 
-export const getFormFields = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getFormFields = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
 
     const userId = req.user.id;
     const formId = Number(req.params.formId);
 
+    if (!formId) {
+      throw new ApiError("Не передан ID формы", BAD_REQUEST);
+    }
+
     if (isNaN(formId)) {
-      res.status(400).json({ message: "Некорректный ID формы" });
-      return;
+      throw new ApiError("Некорректный ID формы", BAD_REQUEST);
     }
 
     const formCheck = await pool.query("SELECT id FROM forms WHERE id = $1 AND user_id = $2", [formId, userId]);
     if (formCheck.rowCount === 0) {
-      res.status(404).json({ message: "Форма не найдена" });
-      return;
+      throw new ApiError("Форма не найдена", NOT_FOUND_ERROR);
     }
 
     const { rows } = await pool.query("SELECT * FROM form_fields WHERE form_id = $1", [formId]);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const createFormField = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createFormField = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
 
     const userId = req.user.id;
     const { formId, fieldName, fieldType, placeholder, required, position, isButton } = req.body;
 
     if (!formId) {
-      res.status(400).json({ message: "Не передан ID формы" });
-      return;
+      throw new ApiError("Не передан ID формы", BAD_REQUEST);
     }
 
     const formIdNum = Number(formId);
     if (isNaN(formIdNum)) {
-      res.status(400).json({ message: "Некорректный ID формы" });
-      return;
+      throw new ApiError("Некорректный ID формы", BAD_REQUEST);
     }
 
     const formCheck = await pool.query("SELECT id FROM forms WHERE id = $1 AND user_id = $2", [formIdNum, userId]);
     if (formCheck.rowCount === 0) {
-      res.status(404).json({ message: "Форма не найдена" });
-      return;
+      throw new ApiError("Форма не найдена", NOT_FOUND_ERROR);
     }
 
     const { rows } = await pool.query(
@@ -62,17 +61,16 @@ export const createFormField = async (req: AuthRequest, res: Response): Promise<
       [formIdNum, fieldName, fieldType, placeholder, required, position, isButton]
     );
 
-    res.status(201).json(rows[0]);
+    res.status(CREATED).json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const updateFormField = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateFormField = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
 
     const userId = req.user.id;
@@ -80,8 +78,7 @@ export const updateFormField = async (req: AuthRequest, res: Response): Promise<
     const { fieldName, fieldType, placeholder, required, position, isButton } = req.body;
 
     if (isNaN(fieldId)) {
-      res.status(400).json({ message: "Некорректный ID поля" });
-      return;
+      throw new ApiError("Некорректный ID поля", BAD_REQUEST);
     }
 
     const fieldCheck = await pool.query(
@@ -89,15 +86,13 @@ export const updateFormField = async (req: AuthRequest, res: Response): Promise<
       [fieldId]
     );
     if (fieldCheck.rowCount === 0) {
-      res.status(404).json({ message: "Поле не найдено" });
-      return;
+      throw new ApiError("Поле не найдено", NOT_FOUND_ERROR);
     }
 
     const formId = fieldCheck.rows[0].form_id;
     const formCheck = await pool.query("SELECT id FROM forms WHERE id = $1 AND user_id = $2", [formId, userId]);
     if (formCheck.rowCount === 0) {
-      res.status(403).json({ message: "Нет доступа к данной форме" });
-      return;
+      throw new ApiError("Нет доступа к данной форме", FORBIDDEN);
     }
 
     const { rowCount, rows } = await pool.query(
@@ -106,29 +101,26 @@ export const updateFormField = async (req: AuthRequest, res: Response): Promise<
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Поле не найдено" });
-      return;
+      throw new ApiError("Поле не найдено", NOT_FOUND_ERROR);
     }
 
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };
 
-export const deleteFormField = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteFormField = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
 
     const userId = req.user.id;
     const fieldId = Number(req.params.id);
 
     if (isNaN(fieldId)) {
-      res.status(400).json({ message: "Некорректный ID поля" });
-      return;
+      throw new ApiError("Некорректный ID поля", BAD_REQUEST);
     }
 
     const fieldCheck = await pool.query(
@@ -136,15 +128,13 @@ export const deleteFormField = async (req: AuthRequest, res: Response): Promise<
       [fieldId]
     );
     if (fieldCheck.rowCount === 0) {
-      res.status(404).json({ message: "Поле не найдено" });
-      return;
+      throw new ApiError("Поле не найдено", NOT_FOUND_ERROR);
     }
 
     const formId = fieldCheck.rows[0].form_id;
     const formCheck = await pool.query("SELECT id FROM forms WHERE id = $1 AND user_id = $2", [formId, userId]);
     if (formCheck.rowCount === 0) {
-      res.status(403).json({ message: "Нет доступа к данной форме" });
-      return;
+      throw new ApiError("Нет доступа к данной форме", FORBIDDEN);
     }
 
     const { rowCount } = await pool.query(
@@ -153,12 +143,11 @@ export const deleteFormField = async (req: AuthRequest, res: Response): Promise<
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Поле не найдено" });
-      return;
+      throw new ApiError("Поле не найдено", NOT_FOUND_ERROR);
     }
 
     res.json({ message: "Поле удалено" });
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    next(error);
   }
 };

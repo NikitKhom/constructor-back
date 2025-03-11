@@ -9,7 +9,7 @@ const FORBIDDEN = 403;
 const SALT_ROUNDS = 10;
 const REGEXP_LINK = /https?:\/\/(?:www\.)?[0-9a-zA-Z-]+\.[a-zA-Z]+(?:[-.\w~,:/?#[\]@!$&'()*+;=]*)#?/;
 
-export default {
+export {
   SALT_ROUNDS,
   CONFLICT,
   SERVER_ERROR,

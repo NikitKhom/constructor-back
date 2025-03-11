@@ -5,6 +5,7 @@ import authRouter from "./routes/auth";
 import cookieParser from "cookie-parser";
 import authMiddleware from "./middlewares/auth";
 import cors from "cors";
+import { errorHandler } from "./middlewares/errorHandler";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(cookieParser());
 app.use(authRouter);
 app.use(authMiddleware);
 app.use(router);
+app.use(errorHandler);
 
 
 const startServer = async (): Promise<void> => {

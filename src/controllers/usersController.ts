@@ -1,36 +1,39 @@
 import { pool } from "../config/db";
-import { Response } from "express";
+import { NextFunction, Response } from "express";
 import bcrypt from "bcrypt";
 import { AuthRequest } from "../utils/types";
+import { ApiError } from "../middlewares/errorHandler";
+import { 
+  UNAUTHORIZED,
+  NOT_FOUND_ERROR
+} from "../utils/constants";
 
-const getUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+const getUsers = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { rows } = await pool.query("SELECT id, name, email, avatar FROM users");
     res.status(200).json(rows);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 };
 
 
-const getUser = async (req: AuthRequest, res: Response): Promise<void> => {
+const getUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({ message: "Не авторизован" });
-      return;
+      throw new ApiError("Не авторизован", UNAUTHORIZED);
     }
     const userId = req.user.id;
     const {rows} = await pool.query("SELECT id, name, email, avatar FROM users WHERE id = $1", [userId]);
     
     if (rows.length === 0) {
-      res.status(404).json({ message: "Пользователь не найден" });
-      return;
+      throw new ApiError("Пользователь не найден", NOT_FOUND_ERROR);
     }
     const user = rows[0];
     user.avatar = user.avatar ?? "";
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 };
 
@@ -40,11 +43,10 @@ const updatePassword = async (userId: string, newPassword: string): Promise<void
 };
 
 
-const updateUser = async (req: AuthRequest, res: Response) => {
+const updateUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const { name, email, password, avatar } = req.body;
   if (!req.user) {
-    res.status(401).json({ message: "Не авторизован" });
-    return;
+    throw new ApiError("Не авторизован", UNAUTHORIZED);
   }
   const userId = req.user.id;
   try {
@@ -64,30 +66,28 @@ const updateUser = async (req: AuthRequest, res: Response) => {
     const values = [name, email, avatar, userId];
     const { rows } = await pool.query(query, values);
     if (rows.length === 0) {
-      res.status(404).json({ message: "Пользователь не найден" });
-      return;
+      throw new ApiError("Пользователь не найден", NOT_FOUND_ERROR);
     }
   
     res.status(200).json(rows[0]);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 };
 
-const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
+const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.params.id;
 
     const { rowCount } = await pool.query("DELETE FROM users WHERE id = $1", [userId]);
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Пользователь не найден" });
-      return;
+      throw new ApiError("Пользователь не найден", NOT_FOUND_ERROR);
     }
 
     res.status(200).json({ message: "Пользователь успешно удалён" });
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    next(error);
   }
 };
 
