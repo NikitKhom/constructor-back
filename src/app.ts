@@ -4,10 +4,11 @@ import { checkDBConnection } from "./config/db";
 import authRouter from "./routes/auth";
 import cookieParser from "cookie-parser";
 import authMiddleware from "./middlewares/auth";
+import cors from "cors";
 
 const app = express();
 
-
+app.use(cors());  
 app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
