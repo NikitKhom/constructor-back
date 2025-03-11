@@ -9,7 +9,7 @@ const router = express.Router();
 router.use("/users", userRouter);
 router.use("/styles", styleRouter);
 router.use("/forms", formRouter);
-router.use("/forms", formFieldRouter);
+router.use("/fields", formFieldRouter);
 
 export default router;
 

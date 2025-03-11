@@ -23,11 +23,22 @@ export const createForm = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
     const userId = req.user.id;
-    const { name, description, style_id } = req.body;
+    const { name, style_id } = req.body;
+
+    if (!style_id) {
+      res.status(400).json({ message: "Style ID обязателен" });
+      return;
+    }
+
+    const styleCheck = await pool.query("SELECT id FROM styles WHERE id = $1 AND user_id = $2", [style_id, userId]);
+    if (styleCheck.rowCount === 0) {
+      res.status(400).json({ message: "Указанный style_id не существует или не принадлежит пользователю" });
+      return;
+    }
 
     const { rows } = await pool.query(
-      "INSERT INTO forms (user_id, name, description, style_id) VALUES ($1, $2, $3, $4) RETURNING *",
-      [userId, name, description, style_id]
+      "INSERT INTO forms (user_id, name, style_id) VALUES ($1, $2, $3) RETURNING *",
+      [userId, name, style_id]
     );
 
     res.status(201).json(rows[0]);
@@ -44,7 +55,7 @@ export const updateForm = async (req: AuthRequest, res: Response): Promise<void>
     }
     const userId = req.user.id;
     const formId = req.params.id;
-    const { name, description, style_id } = req.body;
+    const { name, style_id } = req.body;
 
     if (!formId) {
       res.status(400).json({ message: "ID не передан в URL" });
@@ -57,9 +68,18 @@ export const updateForm = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    if (style_id) {
+      // Проверяем, существует ли стиль в базе
+      const styleCheck = await pool.query("SELECT id FROM styles WHERE id = $1 AND user_id = $2", [style_id, userId]);
+      if (styleCheck.rowCount === 0) {
+        res.status(400).json({ message: "Указанный style_id не существует или не принадлежит пользователю" });
+        return;
+      }
+    }
+
     const { rowCount, rows } = await pool.query(
-      "UPDATE forms SET name = $1, description = $2, style_id = $3 WHERE id = $4 AND user_id = $5 RETURNING *",
-      [name, description, style_id, formIdNum, userId]
+      "UPDATE forms SET name = $1, style_id = $2 WHERE id = $3 AND user_id = $4 RETURNING *",
+      [name, style_id, formIdNum, userId]
     );
 
     if (rowCount === 0) {
