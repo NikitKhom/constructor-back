@@ -1,5 +1,5 @@
 import express from "express";
-import userRouter from "./routes/userRouter";
+import router from "./routes";
 import { checkDBConnection } from "./config/db";
 import authRouter from "./routes/auth";
 import cookieParser from "cookie-parser";
@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(authRouter);
 app.use(authMiddleware);
-app.use("/users", userRouter);
+app.use(router);
 
 
 const startServer = async (): Promise<void> => {

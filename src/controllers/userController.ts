@@ -2,12 +2,8 @@ import { pool } from "../config/db";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 
-interface User {
-  id: number;
-}
-
 interface AuthRequest extends Request {
-    user: User;
+  user: { id: number };
 }
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
