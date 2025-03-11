@@ -2,33 +2,32 @@ import { Response } from "express";
 import { pool } from "../config/db";
 import { AuthRequest } from "../utils/types"; 
 
-
-
-export const getStyles = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getForms = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ message: "Не авторизован" });
       return;
     }
     const userId = req.user.id;
-    const { rows } = await pool.query("SELECT * FROM styles WHERE user_id = $1", [userId]);
+    const { rows } = await pool.query("SELECT * FROM forms WHERE user_id = $1", [userId]);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
 };
 
-export const createStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createForm = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ message: "Не авторизован" });
       return;
     }
     const userId = req.user.id;
-    const { name, formCss, inputCss, buttonCss } = req.body;
+    const { name, description, style_id } = req.body;
+
     const { rows } = await pool.query(
-      "INSERT INTO styles (user_id, name, form_css, input_css, button_css) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [userId, name, formCss, inputCss, buttonCss]
+      "INSERT INTO forms (user_id, name, description, style_id) VALUES ($1, $2, $3, $4) RETURNING *",
+      [userId, name, description, style_id]
     );
 
     res.status(201).json(rows[0]);
@@ -37,35 +36,34 @@ export const createStyle = async (req: AuthRequest, res: Response): Promise<void
   }
 };
 
-export const updateStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateForm = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ message: "Не авторизован" });
       return;
     }
     const userId = req.user.id;
-    const styleId = req.params.id;
-    const { name, formCss, inputCss, buttonCss } = req.body;
+    const formId = req.params.id;
+    const { name, description, style_id } = req.body;
 
-    if (!styleId) {
+    if (!formId) {
       res.status(400).json({ message: "ID не передан в URL" });
       return;
     }
 
-    const styleIdNum = Number(styleId);
-
-    if (isNaN(styleIdNum)) {
-      res.status(400).json({ message: "Некорректный ID стиля" });
+    const formIdNum = Number(formId);
+    if (isNaN(formIdNum)) {
+      res.status(400).json({ message: "Некорректный ID формы" });
       return;
     }
 
     const { rowCount, rows } = await pool.query(
-      "UPDATE styles SET name = $1, form_css = $2, input_css = $3, button_css = $4 WHERE id = $5 AND user_id = $6 RETURNING *",
-      [name, formCss, inputCss, buttonCss, styleId, userId]
+      "UPDATE forms SET name = $1, description = $2, style_id = $3 WHERE id = $4 AND user_id = $5 RETURNING *",
+      [name, description, style_id, formIdNum, userId]
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Стиль не найден" });
+      res.status(404).json({ message: "Форма не найдена" });
       return;
     }
 
@@ -75,38 +73,37 @@ export const updateStyle = async (req: AuthRequest, res: Response): Promise<void
   }
 };
 
-export const deleteStyle = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteForm = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ message: "Не авторизован" });
       return;
     }
     const userId = req.user.id;
-    const styleId = req.params.id;
+    const formId = req.params.id;
 
-    if (!styleId) {
+    if (!formId) {
       res.status(400).json({ message: "ID не передан в URL" });
-      return; 
+      return;
     }
 
-    const styleIdNum = Number(styleId);
-
-    if (isNaN(styleIdNum)) {
-      res.status(400).json({ message: "Некорректный ID стиля" });
+    const formIdNum = Number(formId);
+    if (isNaN(formIdNum)) {
+      res.status(400).json({ message: "Некорректный ID формы" });
       return;
     }
 
     const { rowCount } = await pool.query(
-      "DELETE FROM styles WHERE id = $1 AND user_id = $2",
-      [styleId, userId]
+      "DELETE FROM forms WHERE id = $1 AND user_id = $2",
+      [formIdNum, userId]
     );
 
     if (rowCount === 0) {
-      res.status(404).json({ message: "Стиль не найден" });
+      res.status(404).json({ message: "Форма не найдена" });
       return;
     }
 
-    res.json({ message: "Стиль удалён" });
+    res.json({ message: "Форма удалена" });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
